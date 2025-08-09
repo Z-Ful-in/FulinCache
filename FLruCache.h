@@ -16,7 +16,7 @@ namespace FulinCache {
     class LruNode{
     public:
         explicit LruNode(Key key, Value value):
-        key_(key), value_(value),accessCount(0),next(nullptr),prev(nullptr){}
+        key_(key), value_(value),accessCount(1),next(nullptr),prev(nullptr){}
 
         Value getValue() const {return value_;}
         Key getKey() const {return key_;}
@@ -45,15 +45,33 @@ namespace FulinCache {
         }
 
         bool get(Key key, Value& value) override{
-
+            std::lock_guard<std::mutex> lock(mutex_);
+            auto it = nodeMap_.find(key);
+            if(it != nodeMap_.end()){
+                value = it->second->getValue();
+                updateAccessCount(it->second);
+                return true;
+            }
+            return false;
         }
 
         Value get(Key key) override{
-
+            Value value{};
+            get(key, value);
+            return value;
         }
 
         void put(Key key, Value value) override{
-
+            std::lock_guard<std::mutex> lock(mutex_);
+            auto it = nodeMap_.find(key);
+            if(it != nodeMap_.end()){
+                it->second->setValue(value);
+                updateAccessCount(it->second);
+                return;
+            }
+            if(capacity_ <= nodeMap_.size())
+                removeLastNode();
+            addNewNode(key, value);
         }
 
     private:
@@ -63,6 +81,42 @@ namespace FulinCache {
 
             head_ -> next = tail_;
             tail_ -> prev = head_;
+        }
+
+        void addNewNode(const Key& key, const Value& value){
+            NodePtr node = std::make_shared<LruNodeType>(key, value);
+            addToFirst(node);
+        }
+
+        void updateAccessCount(NodePtr node){
+            node->incrementAccessCount();
+            moveToFront(node);
+        }
+
+        void moveToFront(NodePtr node){
+            removeNode(node);
+            addToFirst(node);
+        }
+        void addToFirst(NodePtr node){
+            node->next = head_->next;
+            node->prev = head_;
+            head_->next->prev = node;
+            head_->next = node;
+        }
+
+        void removeNode(NodePtr node){
+            if(!node->prev.lock() && node->next){
+                auto prev = node->prev;
+                prev->next = node->next;
+                node->next->prev = node->prev;
+                node->next = nullptr;
+            }
+        }
+        void removeLastNode(){
+            NodePtr node = tail_->prev.lock();
+            if(node&& node!= head_){
+                removeNode(node);
+            }
         }
 
         NodePtr head_;
