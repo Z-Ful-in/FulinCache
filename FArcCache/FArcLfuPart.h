@@ -72,6 +72,13 @@ namespace FulinCache{
             return true;
         }
 
+        bool contains(const Key& key){
+            auto it = mainCache_.find(key);
+            if(it != mainCache_.end())
+                return true;
+            return false;
+        }
+
     private:
 
         void initializeLists(){
