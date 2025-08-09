@@ -23,6 +23,30 @@ namespace FulinCache{
             initializeLists();
         }
 
+        void put(Key key, Value value){
+            if(capacity_<=0) return;
+            std::lock_guard<std::mutex> lock(mutex_);
+            auto it = mainCache_.find(key);
+            if(it != mainCache_.end()){
+                updateExistingNode(it->second, value);
+                return;
+            }
+            if(mainCache_.size() >= capacity_)
+                evictLeastRecent();
+            addNewNode(key, value);
+        }
+
+        bool get(Key key, Value& value, bool& shouldTransform){
+            std::lock_guard<std::mutex> lock(mutex_);
+            auto it = mainCache_.find(key);
+            if(it != mainCache_.end()){
+                shouldTransform = updateAccessCount(it->second);
+                value = it->second->getValue();
+                return true;
+            }
+            return false;
+        }
+
         bool checkGhost(Key key){
             auto it = ghostCache_.find(key);
             if(it != ghostCache_.end()){
@@ -45,9 +69,6 @@ namespace FulinCache{
             return true;
         }
 
-
-
-
     private:
         void initializeLists(){
             head_ = std::make_shared<NodeType>(Key(), Value());
@@ -60,6 +81,36 @@ namespace FulinCache{
 
             ghostHead_->next = ghostTail_;
             ghostTail_->prev= ghostHead_;
+        }
+
+        void addNewNode(const Key& key, const Value& value){
+            NodePtr node = std::make_shared<NodeType>(key, value);
+            mainCache_[key] = node;
+            addToFront(node);
+        }
+
+        bool  updateAccessCount(NodePtr node){
+            node->incrementAccessCount();
+            moveToFront(node);
+            return transformThreshold_ <= node->getAccessCount();
+        }
+
+        void updateExistingNode(NodePtr node, const Value& value){
+            node->setValue(value);
+            node->incrementAccessCount();
+            moveToFront(node);
+        }
+
+        void moveToFront(NodePtr node){
+            removeFromMain(node);
+            addToFront(node);
+        }
+
+        void addToFront(NodePtr node){
+            node->next = head_->next;
+            node->prev = head_;
+            head_->next->prev = node;
+            head_->next = node;
         }
 
         void removeFromGhost(NodePtr node){

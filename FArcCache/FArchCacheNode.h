@@ -24,7 +24,7 @@ namespace FulinCache {
 
     public:
         FArchCacheNode(Key key, Value value)
-        : key_(key), value_(value), accessCount(0), next(nullptr) {}
+        : key_(key), value_(value), accessCount(1), next(nullptr) {}
 
         Key getKey() const {return key_;}
         Value getValue() const {return value_;}
