@@ -97,8 +97,7 @@ namespace FulinCache{
 
         void updateExistingNode(NodePtr node, const Value& value){
             node->setValue(value);
-            node->incrementAccessCount();
-            moveToFront(node);
+            updateAccessCount(node);
         }
 
         void moveToFront(NodePtr node){

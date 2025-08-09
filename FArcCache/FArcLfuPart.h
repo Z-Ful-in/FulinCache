@@ -26,6 +26,30 @@ namespace FulinCache{
             initializeLists();
         }
 
+        void put(Key key, Value value){
+            if(capacity_<=0) return;
+            std::lock_guard<std::mutex> lock(mutex_);
+            auto it = mainCache_.find(key);
+            if(it != mainCache_.end()){
+                updateExistingNode(it->second, value);
+                return;
+            }
+            if(capacity_ <= mainCache_.size())
+                evictLeastFrequent();
+            addNewNode(key, value);
+        }
+
+        bool get(Key key, Value& value){
+            std::lock_guard<std::mutex> lock(mutex_);
+            auto it = mainCache_.find(key);
+            if(it != mainCache_.end()){
+                updateAccessCount(it->second);
+                value = it->second->getValue();
+                return true;
+            }
+            return false;
+        }
+
         bool checkGhost(Key key){
             auto it = ghostCache_.find(key);
             if(it != ghostCache_.end()){
@@ -56,6 +80,37 @@ namespace FulinCache{
 
             ghostHead_->next = ghostTail_;
             ghostTail_->prev = ghostHead_;
+        }
+
+        void addNewNode(const Key& key, const Value& value){
+            NodePtr node = std::make_shared<NodeType>(key, value);
+            mainCache_[key] = node;
+            minFreq_ = 1;
+            if(freqMap_.find(minFreq_) == freqMap_.end())
+                freqMap_[minFreq_] = std::list<NodePtr>();
+            freqMap_[minFreq_].push_front(node);
+        }
+
+        void updateExistingNode(NodePtr node, Value value){
+            node->setValue(value);
+            updateAccessCount(node);
+        }
+
+        void updateAccessCount(NodePtr node){
+            size_t oldFreq = node->getAccessCount();
+            node->incrementAccessCount();
+            size_t newFreq = node->getAccessCount();
+
+            auto& minFreqList = freqMap_[oldFreq];
+            minFreqList.erase(oldFreq);
+            if(minFreqList.empty()){
+                freqMap_.erase(oldFreq);
+                if(minFreq_ == oldFreq)
+                    minFreq_ = newFreq;
+            }
+            if(freqMap_.find(newFreq) == freqMap_.end())
+                freqMap_[newFreq] = std::list<NodePtr>();
+            freqMap_[newFreq].push_front(node);
         }
 
         void removeFromGhost(NodePtr node){
