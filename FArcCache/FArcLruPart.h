@@ -23,6 +23,29 @@ namespace FulinCache{
             initializeLists();
         }
 
+        bool checkGhost(Key key){
+            auto it = ghostCache_.find(key);
+            if(it != ghostCache_.end()){
+                ghostCache_.erase(it);
+                removeFromGhost(it->second);
+                return true;
+            }
+            return false;
+        }
+
+        void increaseCapacity(){
+            capacity_++;
+        }
+
+        bool decreaseCapacity(){
+            if(capacity_ <= 0) return false;
+            if(mainCache_.size() >= capacity_)
+                evictLeastRecent();
+            capacity_--;
+            return true;
+        }
+
+
 
 
     private:
@@ -37,6 +60,56 @@ namespace FulinCache{
 
             ghostHead_->next = ghostTail_;
             ghostTail_->prev= ghostHead_;
+        }
+
+        void removeFromGhost(NodePtr node){
+            if(!node->prev.expired() && node->next){
+                auto prev = node->prev.lock();
+                prev->next = node->next;
+                node->next->prev = node->prev;
+                node->next = nullptr;
+            }
+        }
+
+        void removeFromMain(NodePtr node){
+            if(!node->prev.expired() && node->next){
+                auto prev = node->prev;
+                node->next = prev->next;
+                node->prev = node->next->prev;
+                node->next = nullptr;
+            }
+        }
+
+        void removeLastGhost(){
+            if(!tail_->prev.expired()){
+                NodePtr lastNode = ghostTail_->prev.lock();
+                if(lastNode == ghostHead_) return;
+                ghostCache_.erase(lastNode->getKey());
+                removeFromGhost(lastNode);
+            }
+        }
+
+        void addToGhost(NodePtr node){
+            node->accessCount = 1;  // 重置计数
+
+            node->next  = ghostHead_->next;
+            node->prev = ghostHead_;
+            ghostHead_->next->prev = node;
+            ghostHead_->next = node;
+
+            ghostCache_[node->getKey()] = node;
+        }
+
+        void evictLeastRecent(){
+            auto leastRecent = tail_->prev.lock();
+            if(leastRecent && leastRecent!= head_){
+                removeFromMain(leastRecent);
+                mainCache_.erase(leastRecent->getKey());
+                if(ghostCache_.size() >= ghostCapacity_){
+                    removeLastGhost();
+                }
+                addToGhost(leastRecent);
+            }
         }
 
         NodePtr head_;
