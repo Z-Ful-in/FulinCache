@@ -53,11 +53,13 @@ namespace FulinCache{
             head_->next = node;
         }
 
-        void removeLast(){
+        NodePtr removeLast(){
             NodePtr last = tail_->prev.lock();
             if(last && last != head_){
                 removeNode(last);
+                return last;
             }
+            return nullptr;
         }
         void removeNode(NodePtr node){
             if(!node->prev.expired() && node->next){
@@ -152,8 +154,11 @@ namespace FulinCache{
             auto it = freqMap_.find(minFreq_);
             if(it == freqMap_.end())
                 return;
-            freqMap_[minFreq_]->removeLast();
-            totalAccessCount_ -= minFreq_;
+            auto node = freqMap_[minFreq_]->removeLast();
+            if(node){
+                nodeMap_.erase(node->getKey());
+                totalAccessCount_ -= minFreq_;
+            }
             if(freqMap_[minFreq_]->empty()){
                 freqMap_.erase(minFreq_);
                 minFreq_ = 1; // Put
