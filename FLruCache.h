@@ -119,6 +119,7 @@ namespace FulinCache {
             NodePtr node = tail_->prev.lock();
             if(node&& node!= head_){
                 removeNode(node);
+                nodeMap_.erase(node->getKey());
             }
         }
 
