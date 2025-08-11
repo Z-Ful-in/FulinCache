@@ -14,4 +14,6 @@ add_executable(FulinCache main.cpp
         FArcCache/FArcLfuPart.h
         FArcCache/FArcCache.h
         FArcCache/FArcCache.h
+        FLfuCache.h
+        FLfuCache.h
 )
