@@ -16,7 +16,7 @@ namespace FulinCache {
     class LruNode{
     public:
         explicit LruNode(Key key, Value value):
-        key_(key), value_(value),accessCount(1),next(nullptr),prev(nullptr){}
+        key_(key), value_(value),accessCount(1),next(nullptr), prev(){}
 
         Value getValue() const {return value_;}
         Key getKey() const {return key_;}
@@ -29,8 +29,8 @@ namespace FulinCache {
         size_t accessCount;
         Key key_;
         Value value_;
-        std::shared_ptr<LruNode> next;
-        std::weak_ptr<LruNode> prev;
+        std::shared_ptr<LruNode<Key,Value>> next;
+        std::weak_ptr<LruNode<Key, Value>> prev;
     };
 
     template<typename Key, typename Value>
@@ -107,8 +107,8 @@ namespace FulinCache {
         }
 
         void removeNode(NodePtr node){
-            if(!node->prev.lock() && node->next){
-                auto prev = node->prev;
+            if(!node->prev.expired() && node->next){
+                auto prev = node->prev.lock();
                 prev->next = node->next;
                 node->next->prev = node->prev;
                 node->next = nullptr;
