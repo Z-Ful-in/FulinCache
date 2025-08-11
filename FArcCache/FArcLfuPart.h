@@ -53,8 +53,8 @@ namespace FulinCache{
         bool checkGhost(Key key){
             auto it = ghostCache_.find(key);
             if(it != ghostCache_.end()){
-                ghostCache_.erase(it);
                 removeFromGhost(it->second);
+                ghostCache_.erase(it);
                 return true;
             }
             return false;
@@ -109,7 +109,7 @@ namespace FulinCache{
             size_t newFreq = node->getAccessCount();
 
             auto& minFreqList = freqMap_[oldFreq];
-            minFreqList.erase(oldFreq);
+            minFreqList.remove(node);
             if(minFreqList.empty()){
                 freqMap_.erase(oldFreq);
                 if(minFreq_ == oldFreq)
@@ -121,8 +121,8 @@ namespace FulinCache{
         }
 
         void removeFromGhost(NodePtr node){
-            if(!node->prev.lock() && node->next){
-                auto prev = node->prev;
+            if(!node->prev.expired() && node->next){
+                auto prev = node->prev.lock();
                 prev->next = node->next;
                 node->next ->prev = node->prev;
                 node->next = nullptr;

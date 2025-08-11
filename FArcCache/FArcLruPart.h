@@ -50,8 +50,8 @@ namespace FulinCache{
         bool checkGhost(Key key){
             auto it = ghostCache_.find(key);
             if(it != ghostCache_.end()){
-                ghostCache_.erase(it);
                 removeFromGhost(it->second);
+                ghostCache_.erase(it);
                 return true;
             }
             return false;
@@ -123,8 +123,8 @@ namespace FulinCache{
 
         void removeFromMain(NodePtr node){
             if(!node->prev.expired() && node->next){
-                auto prev = node->prev;
-                node->next = prev->next;
+                auto prev = node->prev.lock();
+                prev->next = node->next;
                 node->prev = node->next->prev;
                 node->next = nullptr;
             }
