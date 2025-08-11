@@ -23,6 +23,8 @@ namespace FulinCache {
         std::weak_ptr<FArchCacheNode<Key,Value>> prev;
 
     public:
+        FArchCacheNode()
+        : key_(), value_(), accessCount(1), next(nullptr) {}
         FArchCacheNode(Key key, Value value)
         : key_(key), value_(value), accessCount(1), next(nullptr) {}
 
