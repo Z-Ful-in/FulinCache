@@ -19,7 +19,7 @@ namespace FulinCache{
         struct Node{
             Node(): accessCount(1), next(nullptr) {}
             Node(Key key, Value value):
-                    key_(key), value_(value),accessCount(1),next(nullptr),prev(nullptr){}
+                    key_(key), value_(value),accessCount(1),next(nullptr),prev(){}
 
             Value getValue() const {return value_;}
             Key getKey() const {return key_;}
@@ -83,7 +83,7 @@ namespace FulinCache{
         using NodePtr = std::shared_ptr<NodeType>;
         using NodeMap = std::unordered_map<Key, NodePtr>;
 
-        explicit FLfuCache(size_t capacity_, int maxAverageAccess = 100000)
+        explicit FLfuCache(size_t capacity_, int maxAverageAccess = 10)
         : capacity_(capacity_)
         , minFreq_(0)
         , maxAverageAccess_(maxAverageAccess)
@@ -131,7 +131,7 @@ namespace FulinCache{
             if(nodeMap_.empty()) return;
             currentAverageAccess_ = totalAccessCount_ / nodeMap_.size();
             if(currentAverageAccess_ >= maxAverageAccess_){
-                for(auto& it = nodeMap_.begin(); it != nodeMap_.end(); it++){
+                for(auto it = nodeMap_.begin(); it != nodeMap_.end(); it++){
                    if(!it->second) continue;
                    NodePtr node = it->second;
                    size_t oldFreq = node->getAccessCount();
@@ -183,7 +183,7 @@ namespace FulinCache{
 
         size_t capacity_;
         NodeMap nodeMap_;
-        std::unordered_map<size_t, std::unique_ptr<FreqList<Key,Value>>> freqMap_;
+        std::unordered_map<size_t, FreqList<Key,Value>*> freqMap_;
         size_t minFreq_;
 
         size_t totalAccessCount_;
