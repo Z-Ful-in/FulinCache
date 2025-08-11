@@ -87,6 +87,7 @@ namespace FulinCache {
 
         void addNewNode(const Key& key, const Value& value){
             NodePtr node = std::make_shared<LruNodeType>(key, value);
+            nodeMap_[key] = node;
             addToFirst(node);
         }
 
