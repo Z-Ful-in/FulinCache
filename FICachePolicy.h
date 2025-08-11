@@ -10,7 +10,7 @@ namespace FulinCache {
     class FICachePolicy {
     public:
         FICachePolicy() = default;
-        ~FICachePolicy() = delete;
+        virtual ~FICachePolicy() = default;
 
         virtual void put(Key key, Value value) = 0;
 

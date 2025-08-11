@@ -44,6 +44,8 @@ namespace FulinCache {
             initializeCache();
         }
 
+        ~FLruCache() override =default;
+
         bool get(Key key, Value& value) override{
             std::lock_guard<std::mutex> lock(mutex_);
             auto it = nodeMap_.find(key);

@@ -91,6 +91,8 @@ namespace FulinCache{
         , currentAverageAccess_(0)
         {}
 
+        ~FLfuCache() override = default;
+
         void put(Key key, Value value) override{
             std::lock_guard<std::mutex> lock(mutex_);
             clearAccessCount();

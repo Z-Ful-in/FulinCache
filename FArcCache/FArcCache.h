@@ -21,7 +21,7 @@ namespace FulinCache{
         , lruPart_(new ArcLruPart<Key, Value>(capacity,transformThreshold))
         , lfuPart_(new ArcLfuPart<Key, Value>(capacity)){}
 
-        ~ArcCache() = default;
+        ~ArcCache()override = default;
 
         bool get(Key key, Value& value) override{
             checkGhostCaches(key);
