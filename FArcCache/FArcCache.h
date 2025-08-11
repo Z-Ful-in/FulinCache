@@ -15,7 +15,7 @@ namespace FulinCache{
     template<typename Key, typename Value>
     class ArcCache: public FICachePolicy<Key, Value>{
     public:
-        ArcCache(size_t capacity, size_t transformThreshold)
+        ArcCache(size_t capacity, size_t transformThreshold = 2)
         : capacity_(capacity)
         , transformThreshold_(transformThreshold)
         , lruPart_(new ArcLruPart<Key, Value>(capacity,transformThreshold))
