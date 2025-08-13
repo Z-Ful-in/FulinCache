@@ -97,7 +97,6 @@ namespace FulinCache{
 
         void put(Key key, Value value) override{
             std::lock_guard<std::mutex> lock(mutex_);
-            clearAccessCount();
             auto it = nodeMap_.find(key);
             if(it != nodeMap_.end()){
                 it->second->setValue(value);
@@ -111,7 +110,6 @@ namespace FulinCache{
 
         bool get(Key key, Value& value) override{
             std::lock_guard<std::mutex> lock(mutex_);
-            clearAccessCount();
             auto it = nodeMap_.find(key);
             if(it != nodeMap_.end()){
                 value = it->second->getValue();
@@ -138,9 +136,8 @@ namespace FulinCache{
                    NodePtr node = it->second;
                    size_t oldFreq = node->getAccessCount();
                     freqMap_[oldFreq]->removeNode(node);
-                    size_t newFreq = oldFreq - maxAverageAccess_;
-                    if(newFreq <= 0)
-                        newFreq = 1;
+                    int newFreq = oldFreq - maxAverageAccess_ / 2;
+                    if(newFreq <= 0) newFreq = 1;
                     node->accessCount = newFreq;
                     if(freqMap_.find(newFreq) == freqMap_.end())
                         freqMap_[newFreq] = new FreqList<Key,Value>(newFreq);
@@ -149,6 +146,20 @@ namespace FulinCache{
                 }
             }
             currentAverageAccess_ = totalAccessCount_/nodeMap_.size();
+            updateMinFreq();
+        }
+
+        void updateMinFreq(){
+            minFreq_ = INT8_MAX;
+            for (const auto& pair : freqMap_)
+            {
+                if (pair.second && !pair.second->empty())
+                {
+                    minFreq_ = std::min(minFreq_, pair.first);
+                }
+            }
+            if (minFreq_ == INT8_MAX)
+                minFreq_ = 1;
         }
         void evictLeastFrequent(){
             auto it = freqMap_.find(minFreq_);
@@ -171,6 +182,7 @@ namespace FulinCache{
             if(freqMap_.find(freq) == freqMap_.end())
                 freqMap_[freq] = new FreqList<Key,Value>(freq);
             freqMap_[freq] ->addToFront(node);
+            minFreq_ = 1;
         }
         void updateAccessCount(NodePtr node){
             size_t oldFreq = node->getAccessCount();
@@ -179,11 +191,15 @@ namespace FulinCache{
             totalAccessCount_++;
             size_t newFreq = node->getAccessCount();
             if(minFreq_ == oldFreq && freqMap_[minFreq_]->empty()){
-                minFreq_++;
+                freqMap_.erase(minFreq_);
+                minFreq_ = newFreq;
             }
             if(freqMap_.find(newFreq) == freqMap_.end())
                 freqMap_[newFreq] = new FreqList<Key, Value>(newFreq);
             freqMap_[newFreq] -> addToFront(node);
+            if(!nodeMap_.empty()) currentAverageAccess_ = totalAccessCount_ / nodeMap_.size();
+            if(currentAverageAccess_ >= maxAverageAccess_)
+                clearAccessCount();
         }
 
         size_t capacity_;
